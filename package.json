@@ -1,0 +1,23 @@
+{
+  "name": "stackle",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tap to drop. Stack it perfect. A one-thumb tower-stacking game.",
+  "scripts": {
+    "build": "sh scripts/build.sh",
+    "sync": "npm run build && npx cap sync",
+    "ios": "npm run sync && npx cap open ios",
+    "android": "npm run sync && npx cap open android",
+    "icons": "npx @capacitor/assets generate --iconBackgroundColor '#141226' --iconBackgroundColorDark '#141226' --splashBackgroundColor '#141226' --splashBackgroundColorDark '#141226'",
+    "serve": "npm run build && npx serve www"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0"
+  }
+}

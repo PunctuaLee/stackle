@@ -1,0 +1,11 @@
+{
+  "appId": "com.hanzlee.stackle",
+  "appName": "Stackle",
+  "webDir": "www",
+  "backgroundColor": "#141226",
+  "ios": { "contentInset": "never" },
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 0, "backgroundColor": "#141226" }
+  }
+}

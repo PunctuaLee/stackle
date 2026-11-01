@@ -1,0 +1,554 @@
+<title>Stackle</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Layout: full-bleed canvas game, HTML overlays for menus, one committed arcade-night look */
+:root{
+  --bg:#141226;
+  --fg:#fff8f0;
+  --muted:rgba(255,248,240,.62);
+  --accent:#ffd166;
+  --accent-ink:#2a1d00;
+  --panel:rgba(20,18,38,.78);
+  --line:rgba(255,248,240,.14);
+  --display:'Lilita One','Arial Rounded MT Bold','Arial Black',sans-serif;
+  --body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);
+  overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
+}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:pointer}
+.layer{
+  position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding-block:calc(env(safe-area-inset-top,0px) + 24px) calc(env(safe-area-inset-bottom,0px) + 24px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  text-align:center;
+}
+.layer{overflow-y:auto;justify-content:flex-start}
+.layer[hidden]{display:none!important}
+.card{margin:auto 0}
+.online{width:100%;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:8px;width:100%}
+.field{flex:1;min-width:0;width:100%;box-sizing:border-box;border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--fg);border-radius:14px;padding:12px 14px;font:700 15px var(--body);resize:none}
+.field::placeholder{color:var(--muted)}
+.field:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn.small{width:auto;flex:0 0 auto;padding:12px 16px;font-size:15px;box-shadow:none}
+.btn.small:active{transform:none}
+.btn:disabled{opacity:.6;cursor:default}
+.board{list-style:none;margin:0;padding:0;width:100%;display:flex;flex-direction:column;gap:4px;text-align:left}
+.board li{display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.05);font-weight:700;font-size:14px}
+.board li.me{background:rgba(255,209,102,.18);color:var(--accent)}
+.board li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board li b{font-variant-numeric:tabular-nums}
+.fb{width:100%;display:flex;flex-direction:column;gap:8px}
+.card{
+  width:100%;max-width:340px;box-sizing:border-box;
+  background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:28px;padding:28px 22px 24px;
+  display:flex;flex-direction:column;gap:16px;align-items:center;
+  box-shadow:0 30px 80px rgba(0,0,0,.45);
+}
+h1{
+  font-family:var(--display);font-weight:400;font-size:clamp(52px,16vw,72px);line-height:.95;margin:0;
+  letter-spacing:.01em;text-wrap:balance;
+  background:linear-gradient(180deg,#fff 0%,var(--accent) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 4px 0 rgba(0,0,0,.35));
+}
+h2{font-family:var(--display);font-weight:400;font-size:34px;margin:0;line-height:1;text-wrap:balance}
+.tag{margin:0;color:var(--muted);font-weight:600;font-size:15px;line-height:1.4}
+.seg{
+  display:flex;width:100%;background:rgba(255,255,255,.07);border-radius:999px;padding:4px;gap:4px;
+}
+.seg button{
+  flex:1;border:0;background:transparent;color:var(--muted);font:800 14px var(--body);
+  padding:10px 8px;border-radius:999px;cursor:pointer;letter-spacing:.02em;
+}
+.seg button[aria-pressed="true"]{background:var(--fg);color:#1a1630}
+.stats{display:flex;width:100%;gap:8px}
+.stat{
+  flex:1;min-width:0;background:rgba(255,255,255,.06);border-radius:16px;padding:10px 6px;
+}
+.stat b{display:block;font-family:var(--display);font-weight:400;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.btn{
+  width:100%;border:0;border-radius:999px;padding:16px;cursor:pointer;
+  font:800 18px var(--body);letter-spacing:.02em;
+  background:var(--accent);color:var(--accent-ink);
+  box-shadow:0 6px 0 #c99a2e;transition:transform .08s,box-shadow .08s;
+}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #c99a2e}
+.btn.ghost{background:rgba(255,255,255,.1);color:var(--fg);box-shadow:none}
+.btn.ghost:active{transform:none;background:rgba(255,255,255,.16)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.hint{color:var(--muted);font-size:13px;font-weight:600;margin:0}
+.badge{
+  display:inline-block;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:12px;
+  letter-spacing:.14em;text-transform:uppercase;padding:6px 12px;border-radius:999px;
+}
+
+#hud{
+  position:fixed;left:0;right:0;top:0;pointer-events:none;
+  padding-top:calc(env(safe-area-inset-top,0px) + 18px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+#score{
+  font-family:var(--display);font-size:clamp(64px,20vw,96px);line-height:1;font-variant-numeric:tabular-nums;
+  text-shadow:0 6px 0 rgba(0,0,0,.3);
+}
+#combo{
+  font-weight:800;font-size:16px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);
+  opacity:0;transform:translateY(6px) scale(.9);transition:opacity .25s,transform .25s;
+}
+#combo.on{opacity:1;transform:none}
+#mute{
+  position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);right:calc(env(safe-area-inset-right,0px) + 14px);
+  width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--fg);
+  cursor:pointer;font-size:18px;display:grid;place-items:center;
+}
+#toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);transform:translateX(-50%) translateY(20px);
+  background:var(--fg);color:#1a1630;font-weight:800;font-size:14px;padding:10px 18px;border-radius:999px;
+  opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;
+}
+#toast.on{opacity:1;transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){
+  #combo,#toast,.btn{transition:none}
+}
+</style>
+
+<canvas id="c" aria-label="Stackle game board"></canvas>
+
+<div id="hud" hidden>
+  <div id="score">0</div>
+  <div id="combo">Perfect</div>
+</div>
+<button id="mute" aria-label="Toggle sound" hidden>🔊</button>
+
+<div id="start" class="layer">
+  <div class="card">
+    <h1>Stackle</h1>
+    <p class="tag">Tap to drop the block. Land it dead-on for a perfect. Miss and your tower shrinks.</p>
+    <div class="seg" role="group" aria-label="Game mode">
+      <button id="modeEndless" aria-pressed="true">Endless</button>
+      <button id="modeDaily" aria-pressed="false">Daily #1</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="bestStart">0</b><span>Your best</span></div>
+      <div class="stat"><b id="playsStart">0</b><span>Games</span></div>
+    </div>
+    <button id="play" class="btn">Play</button>
+    <p class="hint" id="dailyHint">Everyone gets the same tower today. One run counts.</p>
+  </div>
+</div>
+
+<div id="over" class="layer" hidden>
+  <div class="card">
+    <span class="badge" id="overBadge">Game over</span>
+    <div class="stats">
+      <div class="stat"><b id="finalScore">0</b><span>Blocks</span></div>
+      <div class="stat"><b id="finalPerfect">0</b><span>Perfect</span></div>
+      <div class="stat"><b id="finalBest">0</b><span>Best</span></div>
+    </div>
+    <div id="online" class="online" hidden>
+      <div class="row" id="nameRow">
+        <input id="playerName" class="field" maxlength="12" placeholder="Your name" autocomplete="nickname" aria-label="Your name">
+        <button id="submitScore" class="btn small">Post score</button>
+      </div>
+      <ol id="board" class="board" hidden></ol>
+      <p class="hint" id="boardMsg" hidden></p>
+    </div>
+    <button id="again" class="btn">Play again</button>
+    <button id="share" class="btn ghost">Copy score to share</button>
+    <button id="menu" class="btn ghost">Change mode</button>
+    <button id="feedbackBtn" class="btn ghost" hidden>Send feedback</button>
+    <div id="feedbackBox" class="fb" hidden>
+      <textarea id="feedbackText" class="field" rows="3" maxlength="1000" placeholder="What felt good? What annoyed you?" aria-label="Your feedback"></textarea>
+      <button id="feedbackSend" class="btn small">Send</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">Copied</div>
+
+<script>
+(() => {
+  // ---------- DOM ----------
+  const $ = id => document.getElementById(id);
+  const canvas = $('c'), ctx = canvas.getContext('2d');
+  const hud = $('hud'), scoreEl = $('score'), comboEl = $('combo');
+  const startLayer = $('start'), overLayer = $('over');
+  const toast = $('toast'), muteBtn = $('mute');
+
+  // ---------- Storage ----------
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem('stackle.'+k); return v===null ? d : JSON.parse(v); }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem('stackle.'+k, JSON.stringify(v)); }catch(e){} }
+  };
+
+  // ---------- Daily seed ----------
+  function dayInfo(){
+    const d = new Date();
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const epoch = Date.UTC(2026,10,1);
+    const today = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+    return { key, num: Math.max(1, Math.floor((today-epoch)/86400000)+1) };
+  }
+  function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+  // ---------- Audio ----------
+  let actx = null, muted = store.get('muted', false);
+  function ac(){
+    if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+    if(actx.state==='suspended') actx.resume();
+    return actx;
+  }
+  function tone(freq, dur, type, vol, slideTo){
+    if(muted) return;
+    const a = ac(); if(!a) return;
+    const o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t+dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t+dur);
+  }
+  function buzz(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
+  function setMute(m){ muted = m; store.set('muted', m); muteBtn.textContent = m ? '🔇' : '🔊'; }
+  muteBtn.addEventListener('click', e => { e.stopPropagation(); setMute(!muted); });
+  setMute(muted);
+
+  // ---------- Geometry ----------
+  const SIZE = 8, H = 1.15, RANGE = 9, TOL = 0.3, ANCHOR = 0.5;
+  const COS = Math.cos(Math.PI/6), SIN = Math.sin(Math.PI/6);
+  let cw = 1, ch = 1;
+  function resize(){
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    cw = window.innerWidth; ch = window.innerHeight;
+    canvas.width = Math.round(cw*dpr); canvas.height = Math.round(ch*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    if(state!=='dying' && state!=='over') cam.ts = unitScale();
+  }
+  function unitScale(){ return Math.min(cw/24, ch/34); }
+  const cam = { y:0, s:10, ty:0, ts:10 };
+  function project(x, y, z){
+    return [ cw/2 + (x - z)*COS*cam.s, ch*ANCHOR + (x + z)*SIN*cam.s - (y - cam.y)*cam.s ];
+  }
+  function poly(pts, fill){
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+  }
+  function drawBlock(b, yBot, yTop, alpha){
+    const x1=b.x-b.w/2, x2=b.x+b.w/2, z1=b.z-b.d/2, z2=b.z+b.d/2;
+    const t1=project(x1,yTop,z1), t2=project(x2,yTop,z1), t3=project(x2,yTop,z2), t4=project(x1,yTop,z2);
+    const b2=project(x2,yBot,z1), b3=project(x2,yBot,z2), b4=project(x1,yBot,z2);
+    ctx.globalAlpha = alpha;
+    poly([t2,t3,b3,b2], `hsl(${b.hue} 62% 40%)`);
+    poly([t4,t3,b3,b4], `hsl(${b.hue} 66% 50%)`);
+    poly([t1,t2,t3,t4], `hsl(${b.hue} 72% 64%)`);
+    ctx.globalAlpha = 1;
+  }
+
+  // ---------- State ----------
+  let state = 'start';   // start | play | dying | over
+  let mode = store.get('mode','endless');
+  let tower = [], moving = null, falling = [], rings = [];
+  let score = 0, perfects = 0, combo = 0, hueBase = 0, rng = Math.random, inputLockUntil = 0;
+  let comboTimer = 0;
+
+  function hueFor(i){ return (hueBase + i*7) % 360; }
+  function speedFor(i){
+    const base = 6 + Math.min(10, i*0.22);
+    return mode==='daily' ? base*(0.85 + rng()*0.3) : base;
+  }
+  function spawnMoving(){
+    const i = tower.length, top = tower[i-1];
+    const axis = i%2 ? 'z' : 'x';
+    const dir = rng() < 0.5 ? 1 : -1;
+    const m = { x:top.x, z:top.z, w:top.w, d:top.d, hue:hueFor(i), axis, dir, speed:speedFor(i) };
+    m[axis] = -dir*RANGE;
+    moving = m;
+  }
+  function newGame(){
+    const day = dayInfo();
+    rng = mode==='daily' ? mulberry32(day.num*7919 + 17) : Math.random;
+    hueBase = Math.floor(rng()*360);
+    tower = [{ x:0, z:0, w:SIZE, d:SIZE, hue:hueFor(0) }];
+    falling = []; rings = []; score = 0; perfects = 0; combo = 0;
+    cam.y = 0; cam.ty = H; cam.s = unitScale(); cam.ts = cam.s;
+    spawnMoving();
+    scoreEl.textContent = '0'; comboEl.classList.remove('on');
+    startLayer.hidden = true; overLayer.hidden = true; hud.hidden = false; muteBtn.hidden = false;
+    state = 'play'; inputLockUntil = performance.now() + 200;
+    store.set('plays', (store.get('plays',0)||0) + 1);
+  }
+
+  function place(){
+    const top = tower[tower.length-1];
+    const a = moving.axis, sz = a==='x' ? 'w' : 'd';
+    const delta = moving[a] - top[a], ad = Math.abs(delta);
+    const overlap = top[sz] - ad;
+    const y = tower.length*H;
+    if(overlap <= 0.02){
+      const f = Object.assign({}, moving, { y, vy:0, t:0, vx:0, vz:0 });
+      f['v'+a] = Math.sign(delta)*2.5;
+      falling.push(f); moving = null;
+      gameOver(); return;
+    }
+    const nb = { x:top.x, z:top.z, w:top.w, d:top.d, hue:moving.hue };
+    if(ad <= TOL){
+      combo++; perfects++;
+      if(combo >= 3 && top[sz] < SIZE) nb[sz] = Math.min(SIZE, top[sz] + 0.7);
+      rings.push({ x:nb.x, z:nb.z, w:nb.w, d:nb.d, y:y+H, t:0 });
+      tone(330*Math.pow(2, Math.min(combo,14)/12), 0.22, 'triangle', 0.22);
+      buzz(12);
+      comboEl.textContent = combo >= 2 ? `Perfect ×${combo}` : 'Perfect';
+      comboEl.classList.add('on'); comboTimer = 0.9;
+    } else {
+      combo = 0;
+      const a1 = top[a]-top[sz]/2, a2 = top[a]+top[sz]/2;
+      const b1 = moving[a]-top[sz]/2, b2 = moving[a]+top[sz]/2;
+      const lo = Math.max(a1,b1), hi = Math.min(a2,b2);
+      nb[a] = (lo+hi)/2; nb[sz] = hi-lo;
+      const f = { x:nb.x, z:nb.z, w:nb.w, d:nb.d, hue:moving.hue, y, vy:0, t:0, vx:0, vz:0 };
+      if(delta > 0){ f[a] = (hi+b2)/2; f[sz] = b2-hi; } else { f[a] = (b1+lo)/2; f[sz] = lo-b1; }
+      f['v'+a] = Math.sign(delta)*2;
+      falling.push(f);
+      tone(160, 0.09, 'square', 0.08);
+      buzz(5);
+    }
+    tower.push(nb);
+    score = tower.length-1; scoreEl.textContent = score;
+    cam.ty = tower.length*H;
+    spawnMoving();
+  }
+
+  function bestKey(){ return mode==='daily' ? 'best.daily.'+dayInfo().key : 'best.endless'; }
+  function gameOver(){
+    state = 'dying';
+    tone(220, 0.5, 'sawtooth', 0.12, 55);
+    buzz([30,40,80]);
+    const n = tower.length;
+    const needed = n*H + SIZE*2*SIN + 3;
+    cam.ts = Math.min(unitScale(), (ch*0.62)/needed);
+    cam.ty = (n*H)/2;
+    const prev = store.get(bestKey(), 0) || 0;
+    const isBest = score > prev;
+    if(isBest) store.set(bestKey(), score);
+    setTimeout(() => {
+      $('overBadge').textContent = isBest && score>0 ? 'New best!' : 'Game over';
+      $('finalScore').textContent = score;
+      $('finalPerfect').textContent = perfects;
+      $('finalBest').textContent = Math.max(prev, score);
+      resetOnlineUI();
+      hud.hidden = true; overLayer.hidden = false; state = 'over';
+    }, 750);
+  }
+
+  // ---------- Render loop ----------
+  let last = performance.now();
+  function frame(now){
+    const dt = Math.min(0.05, (now-last)/1000); last = now;
+    update(dt); render();
+    requestAnimationFrame(frame);
+  }
+  function update(dt){
+    if(state==='play' && moving){
+      moving[moving.axis] += moving.dir*moving.speed*dt;
+      if(moving[moving.axis] > RANGE){ moving[moving.axis] = RANGE; moving.dir = -1; }
+      if(moving[moving.axis] < -RANGE){ moving[moving.axis] = -RANGE; moving.dir = 1; }
+    }
+    for(let i=falling.length-1;i>=0;i--){
+      const f = falling[i];
+      f.vy -= 36*dt; f.y += f.vy*dt; f.x += f.vx*dt; f.z += f.vz*dt; f.t += dt;
+      if(f.t > 1.4) falling.splice(i,1);
+    }
+    for(let i=rings.length-1;i>=0;i--){ rings[i].t += dt*2.2; if(rings[i].t>=1) rings.splice(i,1); }
+    if(comboTimer > 0){ comboTimer -= dt; if(comboTimer <= 0) comboEl.classList.remove('on'); }
+    const k = 1 - Math.exp(-dt*(state==='dying'||state==='over' ? 3.5 : 7));
+    cam.y += (cam.ty - cam.y)*k;
+    cam.s += (cam.ts - cam.s)*k;
+  }
+  function render(){
+    const topHue = hueFor(tower.length);
+    const g = ctx.createLinearGradient(0,0,0,ch);
+    g.addColorStop(0, `hsl(${(topHue+200)%360} 45% 12%)`);
+    g.addColorStop(1, `hsl(${(topHue+250)%360} 55% 24%)`);
+    ctx.fillStyle = g; ctx.fillRect(0,0,cw,ch);
+
+    // tower, bottom to top, skipping blocks below the screen
+    for(let i=0;i<tower.length;i++){
+      const yTop = (i+1)*H;
+      const sy = project(tower[i].x - tower[i].w/2, yTop, tower[i].z - tower[i].d/2)[1];
+      if(sy > ch + 80) continue;
+      drawBlock(tower[i], i*H, yTop, 1);
+    }
+    for(const f of falling) drawBlock(f, f.y, f.y+H, Math.max(0, 1 - Math.max(0, f.t-0.6)/0.8));
+    for(const r of rings){
+      const k = 1 + r.t*0.5, w = r.w*k, d = r.d*k;
+      const p = [project(r.x-w/2,r.y,r.z-d/2), project(r.x+w/2,r.y,r.z-d/2), project(r.x+w/2,r.y,r.z+d/2), project(r.x-w/2,r.y,r.z+d/2)];
+      ctx.beginPath(); ctx.moveTo(p[0][0],p[0][1]); for(let i=1;i<4;i++) ctx.lineTo(p[i][0],p[i][1]); ctx.closePath();
+      ctx.strokeStyle = `rgba(255,255,255,${(1-r.t)*0.9})`; ctx.lineWidth = 3*(1-r.t)+1; ctx.stroke();
+    }
+    if(moving) drawBlock(moving, tower.length*H, (tower.length+1)*H, 1);
+  }
+
+  // ---------- Input ----------
+  function tap(){
+    if(state!=='play' || !moving) return;
+    if(performance.now() < inputLockUntil) return;
+    place();
+  }
+  canvas.addEventListener('pointerdown', e => { e.preventDefault(); tap(); });
+  window.addEventListener('keydown', e => {
+    if(e.code==='Space' || e.code==='ArrowUp' || e.code==='Enter'){
+      if(state==='play'){ e.preventDefault(); tap(); }
+      else if(state==='start' && e.code!=='Enter'){ e.preventDefault(); newGame(); }
+    }
+  });
+
+  // ---------- Menus ----------
+  function refreshStart(){
+    const day = dayInfo();
+    $('modeDaily').textContent = 'Daily #'+day.num;
+    $('modeEndless').setAttribute('aria-pressed', mode==='endless');
+    $('modeDaily').setAttribute('aria-pressed', mode==='daily');
+    $('bestStart').textContent = store.get(bestKey(),0) || 0;
+    $('playsStart').textContent = store.get('plays',0) || 0;
+    $('dailyHint').textContent = mode==='daily'
+      ? 'Everyone gets the same tower today. Beat your friends.'
+      : 'Lands within a hair? Three perfects in a row grow the block back.';
+  }
+  function setMode(m){ mode = m; store.set('mode', m); refreshStart(); }
+  $('modeEndless').addEventListener('click', () => setMode('endless'));
+  $('modeDaily').addEventListener('click', () => setMode('daily'));
+  $('play').addEventListener('click', () => { ac(); newGame(); });
+  $('again').addEventListener('click', () => { ac(); newGame(); });
+  $('menu').addEventListener('click', () => { overLayer.hidden = true; refreshStart(); startLayer.hidden = false; state = 'start'; });
+
+  let toastTimer;
+  function showToast(msg){
+    toast.textContent = msg; toast.classList.add('on');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('on'), 1800);
+  }
+  $('share').addEventListener('click', () => {
+    const day = dayInfo();
+    const stars = '⭐'.repeat(Math.min(perfects, 10)) + (perfects>10 ? '+' : '');
+    const text = (mode==='daily' ? `Stackle Daily #${day.num}` : 'Stackle Endless')
+      + `\n🧱 ${score} blocks${perfects ? `  ·  ${perfects} perfect ${stars}` : ''}\nCan you beat it?`;
+    const done = () => showToast('Copied! Paste it anywhere');
+    const fail = () => {
+      try{
+        const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        const ok = document.execCommand && document.execCommand('copy'); document.body.removeChild(ta);
+        ok ? done() : showToast('Could not copy on this device');
+      }catch(e){ showToast('Could not copy on this device'); }
+    };
+    try{ navigator.clipboard.writeText(text).then(done, fail); }catch(e){ fail(); }
+  });
+
+  // ---------- Online: leaderboard + feedback (Supabase REST; hidden when not configured) ----------
+  const CFG = window.STACKLE_CONFIG || {};
+  const ONLINE = !!(CFG.supabaseUrl && CFG.supabaseKey);
+  let deviceId = store.get('device', null);
+  if(!deviceId){
+    deviceId = (crypto.randomUUID ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c==='x' ? r : (r&3|8)).toString(16); }));
+    store.set('device', deviceId);
+  }
+  async function api(path, opts){
+    opts = opts || {};
+    const headers = Object.assign({ apikey: CFG.supabaseKey, Authorization: 'Bearer '+CFG.supabaseKey, 'Content-Type': 'application/json' }, opts.headers || {});
+    const r = await fetch(String(CFG.supabaseUrl).replace(/\/$/,'') + '/rest/v1/' + path, Object.assign({}, opts, { headers }));
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r;
+  }
+  function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function resetOnlineUI(){
+    if(!ONLINE) return;
+    $('nameRow').hidden = score === 0;
+    $('submitScore').disabled = false; $('submitScore').textContent = 'Post score';
+    $('board').hidden = true; $('boardMsg').hidden = true; $('feedbackBox').hidden = true;
+    if(score === 0) loadBoard();
+  }
+  async function postScore(){
+    const input = $('playerName'), name = input.value.trim().slice(0,12);
+    if(!name){ input.focus(); return; }
+    store.set('name', name);
+    const btn = $('submitScore'); btn.disabled = true; btn.textContent = 'Posting…';
+    try{
+      await api('scores', { method:'POST', headers:{ Prefer:'return=minimal' },
+        body: JSON.stringify({ mode, day: dayInfo().key, name, score, perfects, device_id: deviceId }) });
+      $('nameRow').hidden = true;
+      await loadBoard();
+    }catch(e){
+      btn.disabled = false; btn.textContent = 'Post score';
+      showToast('Could not reach the leaderboard');
+    }
+  }
+  async function loadBoard(){
+    const board = $('board'), msg = $('boardMsg');
+    msg.hidden = false; msg.textContent = 'Loading top scores…'; board.hidden = true;
+    try{
+      const q = mode==='daily'
+        ? 'scores?select=name,score,perfects,device_id&mode=eq.daily&day=eq.'+dayInfo().key+'&order=score.desc&limit=40'
+        : 'scores?select=name,score,perfects,device_id&mode=eq.endless&order=score.desc&limit=40';
+      const rows = await (await api(q)).json();
+      const seen = new Set(), top = [];
+      for(const r of rows){ if(seen.has(r.device_id)) continue; seen.add(r.device_id); top.push(r); if(top.length >= 8) break; }
+      board.innerHTML = '';
+      top.forEach((r, i) => {
+        const li = document.createElement('li');
+        if(r.device_id === deviceId) li.classList.add('me');
+        li.innerHTML = '<span>'+(i+1)+'. '+esc(r.name)+'</span><b>'+r.score+'</b>';
+        board.appendChild(li);
+      });
+      board.hidden = top.length === 0;
+      msg.hidden = top.length > 0;
+      msg.textContent = top.length ? '' : (mode==='daily' ? 'No scores today yet. Yours could be first.' : 'No scores yet. Yours could be first.');
+    }catch(e){ msg.textContent = 'Leaderboard unavailable right now.'; }
+  }
+  async function sendFeedback(){
+    const ta = $('feedbackText'), text = ta.value.trim();
+    if(!text){ ta.focus(); return; }
+    const btn = $('feedbackSend'); btn.disabled = true;
+    try{
+      await api('feedback', { method:'POST', headers:{ Prefer:'return=minimal' },
+        body: JSON.stringify({ message: text.slice(0,1000), score, device_id: deviceId, user_agent: String(navigator.userAgent).slice(0,200) }) });
+      ta.value = ''; $('feedbackBox').hidden = true; showToast('Thanks! Feedback sent');
+    }catch(e){ showToast('Could not send right now'); }
+    btn.disabled = false;
+  }
+  if(ONLINE){
+    $('online').hidden = false; $('feedbackBtn').hidden = false;
+    $('playerName').value = store.get('name','') || '';
+    $('submitScore').addEventListener('click', postScore);
+    $('playerName').addEventListener('keydown', e => { if(e.key === 'Enter') postScore(); });
+    $('feedbackBtn').addEventListener('click', () => { const b = $('feedbackBox'); b.hidden = !b.hidden; if(!b.hidden) $('feedbackText').focus(); });
+    $('feedbackSend').addEventListener('click', sendFeedback);
+  }
+
+  // ---------- Boot ----------
+  window.addEventListener('resize', resize);
+  function start(data){
+    if(data && data.mode) mode = data.mode;
+    resize(); refreshStart();
+    cam.s = cam.ts = unitScale();
+    hueBase = Math.floor(Math.random()*360);
+    tower = [{ x:0, z:0, w:SIZE, d:SIZE, hue:hueFor(0) }];
+    for(let i=1;i<6;i++){ const p = tower[i-1]; tower.push({ x:p.x, z:p.z, w:p.w, d:p.d, hue:hueFor(i) }); }
+    cam.y = cam.ty = tower.length*H - 2;
+    requestAnimationFrame(frame);
+  }
+  try{ window.claude?.hot?.snapshot?.(() => ({ mode })); }catch(e){}
+  (window.claude?.hot?.ready) ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>

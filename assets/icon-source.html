@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8">
+<style>html,body{margin:0;background:#141226;height:100%}canvas{display:block}</style>
+<canvas id="c"></canvas>
+<script>
+const q = new URLSearchParams(location.search);
+const W = +q.get('w') || 1024, H = +q.get('h') || 1024, iconScale = +q.get('s') || 1;
+const c = document.getElementById('c'); c.width = W; c.height = H;
+const ctx = c.getContext('2d');
+const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1a1a3a'); g.addColorStop(1,'#2d1f4e');
+ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+const COS = Math.cos(Math.PI/6), SIN = Math.sin(Math.PI/6);
+const s = Math.min(W,H)/26*iconScale, cx = W/2, cy = H/2 + s*3.2;
+const P = (x,y,z) => [cx + (x-z)*COS*s, cy + (x+z)*SIN*s - y*s];
+function poly(pts, fill){ ctx.beginPath(); ctx.moveTo(...pts[0]); pts.slice(1).forEach(p => ctx.lineTo(...p)); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); }
+function block(x,z,w,d,yb,yt,hue){
+  const x1=x-w/2,x2=x+w/2,z1=z-d/2,z2=z+d/2;
+  const t1=P(x1,yt,z1),t2=P(x2,yt,z1),t3=P(x2,yt,z2),t4=P(x1,yt,z2),b2=P(x2,yb,z1),b3=P(x2,yb,z2),b4=P(x1,yb,z2);
+  poly([t2,t3,b3,b2],`hsl(${hue} 62% 40%)`); poly([t4,t3,b3,b4],`hsl(${hue} 66% 50%)`); poly([t1,t2,t3,t4],`hsl(${hue} 72% 64%)`);
+}
+const Hh = 2.2;
+block(0,0,9,9,0,Hh,205);
+block(0.4,0,8.2,9,Hh,2*Hh,220);
+block(0.4,-0.5,8.2,8,2*Hh,3*Hh,236);
+block(0.4,-0.5,8.2,8,3*Hh,4*Hh,252); // perfect: same size
+// perfect ring on the top face
+const r = 1.18, w = 8.2*r, d = 8*r, y = 4*Hh, x=0.4, z=-0.5;
+const ring = [P(x-w/2,y,z-d/2),P(x+w/2,y,z-d/2),P(x+w/2,y,z+d/2),P(x-w/2,y,z+d/2)];
+ctx.beginPath(); ctx.moveTo(...ring[0]); ring.slice(1).forEach(p=>ctx.lineTo(...p)); ctx.closePath();
+ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth = s*0.35; ctx.stroke();
+</script>
