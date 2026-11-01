@@ -47,6 +47,14 @@ body{
 .board li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .board li b{font-variant-numeric:tabular-nums}
 .fb{width:100%;display:flex;flex-direction:column;gap:8px}
+.modeDesc{width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border-radius:16px;padding:12px 14px;text-align:left;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:2px}
+.modeDesc b{font-weight:800;color:var(--accent);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.modeDesc span{color:var(--fg);font-weight:600}
+.nameBox{display:flex;flex-direction:column;gap:8px;width:100%}
+.nameBox .hint{text-align:left}
+.boardHead{display:flex;justify-content:space-between;align-items:center;width:100%;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.linkBtn{background:none;border:0;color:var(--muted);font:700 12px var(--body);text-decoration:underline;cursor:pointer;padding:4px 0;letter-spacing:0;text-transform:none}
+.hint:empty{display:none}
 .card{
   width:100%;max-width:340px;box-sizing:border-box;
   background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
@@ -135,17 +143,21 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 <div id="start" class="layer">
   <div class="card">
     <h1>Stackle</h1>
-    <p class="tag">Tap to drop the block. Land it dead-on for a perfect. Miss and your tower shrinks.</p>
+    <p class="tag">Tap to drop the block. Whatever hangs over the edge is sliced off. Land it dead-on for a Perfect, and three Perfects in a row grow the block back.</p>
     <div class="seg" role="group" aria-label="Game mode">
       <button id="modeEndless" aria-pressed="true">Endless</button>
       <button id="modeDaily" aria-pressed="false">Daily #1</button>
+    </div>
+    <div class="modeDesc" id="modeDesc" aria-live="polite">
+      <b id="modeTitle">Endless</b>
+      <span id="modeText">A new random tower every run. Chase your own best and the all-time top 8.</span>
     </div>
     <div class="stats">
       <div class="stat"><b id="bestStart">0</b><span>Your best</span></div>
       <div class="stat"><b id="playsStart">0</b><span>Games</span></div>
     </div>
     <button id="play" class="btn">Play</button>
-    <p class="hint" id="dailyHint">Everyone gets the same tower today. One run counts.</p>
+    <p class="hint" id="dailyHint"></p>
   </div>
 </div>
 
@@ -158,10 +170,14 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
       <div class="stat"><b id="finalBest">0</b><span>Best</span></div>
     </div>
     <div id="online" class="online" hidden>
-      <div class="row" id="nameRow">
-        <input id="playerName" class="field" maxlength="12" placeholder="Your name" autocomplete="nickname" aria-label="Your name">
-        <button id="submitScore" class="btn small">Post score</button>
+      <div id="nameRow" class="nameBox">
+        <p class="hint" id="nameHint">Add a name once and every score you make posts to the leaderboard by itself.</p>
+        <div class="row">
+          <input id="playerName" class="field" maxlength="12" placeholder="Your name" autocomplete="nickname" aria-label="Your name">
+          <button id="submitScore" class="btn small">Post score</button>
+        </div>
       </div>
+      <div class="boardHead" id="boardHead" hidden><span id="boardTitle">Today's top 8</span><button id="changeName" class="linkBtn" type="button">Change name</button></div>
       <ol id="board" class="board" hidden></ol>
       <p class="hint" id="boardMsg" hidden></p>
     </div>
@@ -422,9 +438,11 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
     $('modeDaily').setAttribute('aria-pressed', mode==='daily');
     $('bestStart').textContent = store.get(bestKey(),0) || 0;
     $('playsStart').textContent = store.get('plays',0) || 0;
-    $('dailyHint').textContent = mode==='daily'
-      ? 'Everyone gets the same tower today. Beat your friends.'
-      : 'Lands within a hair? Three perfects in a row grow the block back.';
+    $('modeTitle').textContent = mode==='daily' ? 'Daily #'+day.num : 'Endless';
+    $('modeText').textContent = mode==='daily'
+      ? 'Everyone in the world gets this exact tower today. Compare scores with friends on today\u2019s top 8. A new tower arrives at midnight.'
+      : 'A new random tower every run. Chase your own best and the all-time top 8.';
+    $('dailyHint').textContent = mode==='daily' ? 'Share your result and your friends can play the identical tower.' : '';
   }
   function setMode(m){ mode = m; store.set('mode', m); refreshStart(); }
   $('modeEndless').addEventListener('click', () => setMode('endless'));
@@ -474,15 +492,22 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
   function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function resetOnlineUI(){
     if(!ONLINE) return;
-    $('nameRow').hidden = score === 0;
     $('submitScore').disabled = false; $('submitScore').textContent = 'Post score';
-    $('board').hidden = true; $('boardMsg').hidden = true; $('feedbackBox').hidden = true;
-    if(score === 0) loadBoard();
+    $('board').hidden = true; $('boardHead').hidden = true; $('boardMsg').hidden = true; $('feedbackBox').hidden = true;
+    $('boardTitle').textContent = mode==='daily' ? 'Today\u2019s top 8' : 'All-time top 8';
+    const savedName = (store.get('name','') || '').trim();
+    if(score === 0){ $('nameRow').hidden = true; loadBoard(); return; }
+    if(savedName){ $('nameRow').hidden = true; $('playerName').value = savedName; postScore(); }
+    else { $('nameRow').hidden = false; $('nameHint').hidden = false; }
   }
   async function postScore(){
     const input = $('playerName'), name = input.value.trim().slice(0,12);
     if(!name){ input.focus(); return; }
     store.set('name', name);
+    if($('submitScore').textContent === 'Save name'){
+      $('nameRow').hidden = true; $('submitScore').textContent = 'Post score'; input.placeholder = 'Your name';
+      showToast('Saved. Your next score posts as '+name); return;
+    }
     const btn = $('submitScore'); btn.disabled = true; btn.textContent = 'Posting…';
     try{
       await api('scores', { method:'POST', headers:{ Prefer:'return=minimal' },
@@ -491,7 +516,8 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
       await loadBoard();
     }catch(e){
       btn.disabled = false; btn.textContent = 'Post score';
-      showToast('Could not reach the leaderboard');
+      $('nameRow').hidden = false; $('nameHint').hidden = true;
+      showToast('Could not reach the leaderboard. Tap Post score to retry.');
     }
   }
   async function loadBoard(){
@@ -512,6 +538,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
         board.appendChild(li);
       });
       board.hidden = top.length === 0;
+      $('boardHead').hidden = false;
       msg.hidden = top.length > 0;
       msg.textContent = top.length ? '' : (mode==='daily' ? 'No scores today yet. Yours could be first.' : 'No scores yet. Yours could be first.');
     }catch(e){ msg.textContent = 'Leaderboard unavailable right now.'; }
@@ -531,6 +558,13 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
     $('online').hidden = false; $('feedbackBtn').hidden = false;
     $('playerName').value = store.get('name','') || '';
     $('submitScore').addEventListener('click', postScore);
+    $('changeName').addEventListener('click', () => {
+      store.set('name', '');
+      $('nameRow').hidden = false; $('nameHint').hidden = true;
+      $('playerName').value = ''; $('playerName').placeholder = 'New name (posts your next score)'; $('playerName').focus();
+      $('submitScore').textContent = 'Save name';
+      $('submitScore').onclick = null;
+    });
     $('playerName').addEventListener('keydown', e => { if(e.key === 'Enter') postScore(); });
     $('feedbackBtn').addEventListener('click', () => { const b = $('feedbackBox'); b.hidden = !b.hidden; if(!b.hidden) $('feedbackText').focus(); });
     $('feedbackSend').addEventListener('click', sendFeedback);
