@@ -47,7 +47,7 @@ That is fine for a feedback phase; a server-side check comes later if the leader
 ## Release checklist
 
 - Bump `version` in `package.json`, plus the build number in Xcode and `versionCode` in `android/app/build.gradle`.
-- Bump `CACHE` in `assets/sw.js` so web players get the new version.
+- Web players get new versions automatically: the build stamps the offline cache, and the page is always fetched fresh when online.
 - Screenshots: 6.7" iPhone and 6.5" iPhone for App Store, a phone set for Play Store. The game-over screen with a big score makes the best one.
 - Store listing: the one-liner is already the tagline. "Tap to drop. Stack it perfect."
 

@@ -40,5 +40,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 TAIL
 } > www/index.html
 cp assets/icon-192.png assets/icon-512.png www/ 2>/dev/null || true
-cp assets/manifest.webmanifest assets/sw.js www/
+cp assets/manifest.webmanifest www/
+# stamp the service worker so every deploy replaces the old cache
+BUILD="$(date -u +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD 2>/dev/null || echo dev)"
+sed "s/__BUILD__/$BUILD/" assets/sw.js > www/sw.js
 echo "built www/index.html"
